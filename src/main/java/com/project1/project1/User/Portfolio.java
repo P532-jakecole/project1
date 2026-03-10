@@ -139,7 +139,7 @@ public class Portfolio {
                     break;
                 }
             }
-            portfolioBalance = cashBalance + holding.getValue();
+            portfolioBalance = cashBalance - holding.getValue();
             orderService.updateBalance(userInformation());
 
             List<String> updated = new ArrayList<>();

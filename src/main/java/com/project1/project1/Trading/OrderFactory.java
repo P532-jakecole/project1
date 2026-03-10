@@ -62,7 +62,7 @@ public class OrderFactory {
                 }
             }
             if(portfolio.getCashBalance() < (stockPrice*quantity)){
-                notificationService.sendNotification(String.format("balance,%.2f,%.2f", price, quantity));
+                notificationService.sendNotification(String.format("balance,%.2f,%.2f,%.2f", price, quantity, portfolio.getCashBalance()));
                 return null;
             }
             Order marketOrder = new MarketOrder(name, stockPrice, quantity, action, portfolio);

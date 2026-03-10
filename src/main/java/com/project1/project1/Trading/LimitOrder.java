@@ -118,7 +118,7 @@ public class LimitOrder implements Order, Observer {
             }
         }else if(action.equals("sell") && price > this.price){
             if(portfolio.getHolding(this.getName()) == null || portfolio.getHolding(this.getName()).getQuantity() < getQuantity()){
-                notificationService.sendNotification(String.format("balance,%.2f,%.2f", price, quantity));
+                notificationService.sendNotification(String.format("balance,%.2f,%.2f,%,2f", price, quantity,portfolio.getCashBalance()));
                 // Remove from Observable list
                 market.removeObserver(this);
                 // Remove from Pending List
