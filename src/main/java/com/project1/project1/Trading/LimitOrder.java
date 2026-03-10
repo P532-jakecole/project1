@@ -55,7 +55,6 @@ public class LimitOrder implements Order, Observer {
 
         // Send notification
         notificationService.sendNotification(String.format("trade,%s", getOrder()));
-
         // Remove from Observable list
         market.removeObserver(this);
         // Remove from Pending List

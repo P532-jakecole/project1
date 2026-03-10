@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 @Service
@@ -17,17 +18,11 @@ public class Market implements Subject {
     @Autowired
     private OrderService orderService;
 
-    //private static final Market market = new Market();
     private HashMap<Observer, PricingModel> observers;
-//    private PricingModel pricingModel;
+
     private Market() {
         observers = new HashMap<>();
-//        pricingModel = new RandomWalk();
     }
-
-//    public static Market getInstance() {
-//        return market;
-//    }
 
     @Override
     public void registerObserver(Observer observer) {
@@ -39,7 +34,8 @@ public class Market implements Subject {
         observers.remove(observer);
         if (observer instanceof FeedObject object) {
             feedService.sendUpdate(object);
-        }else if(observer instanceof Order order){
+        }
+        if(observer instanceof Order order){
             orderService.sendUpdate(order);
         }
     }
@@ -48,9 +44,17 @@ public class Market implements Subject {
     public void notifyObserver() {
         HashMap<Observer, PricingModel> copy = new HashMap<>(observers);
 
-        for (Observer observer : copy.keySet()) {
-            PricingModel pricingModel = copy.get(observer);
-            observer.update(pricingModel.updatePrice(observer));
+        for (Map.Entry<Observer, PricingModel> entry : copy.entrySet()) {
+
+            Observer observer = entry.getKey();
+            PricingModel pricingModel = entry.getValue();
+
+            if(pricingModel == null) continue;
+
+            double newPrice = pricingModel.updatePrice(observer);
+
+            observer.update(newPrice);
+
             if (observer instanceof FeedObject object) {
                 feedService.sendUpdate(object);
             }
