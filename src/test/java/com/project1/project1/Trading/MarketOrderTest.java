@@ -111,7 +111,7 @@ class MarketOrderTest {
         // Assert
         assertNull(order);
         verify(notificationService).sendNotification(
-                String.format("balance,%.2f,%.2f", 150.0, 1.0)
+                String.format("balance,%.2f,%.2f,%.2f", 150.0, 1.0,100.00)
         );
         verify(portfolio, never()).reduceCashBalance(anyDouble());
     }

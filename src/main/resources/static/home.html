@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+<script>
+    let host = "";
+    // Loads any existing History data
+    async function loadHistory() {
+        let response = await fetch(host + "/home");
+        let data = await response.json();
+
+        const tableBody = document.querySelector("#historyTable tbody");
+
+        tableBody.innerHTML = "";
+
+        data.forEach(order => {
+            const parts = order.split(",");
+            const row = document.createElement("tr");
+            row.innerHTML = `
+            <td>${parts[5]}</td>
+            <td>${parts[1]}</td>
+            <td>${parts[2]}</td>
+            <td>${parts[4]}</td>
+            <td>${parts[3]}</td>
+            <td>${parts[6]}</td>
+        `;
+
+            tableBody.appendChild(row);
+        });
+
+    }
+
+    async function loadPending() {
+        let response = await fetch(host + "/home/pending");
+        let data = await response.json();
+
+        const tableBody = document.querySelector("#pendingTable tbody");
+
+        tableBody.innerHTML = "";
+
+        data.forEach(order => {
+            const parts = order.split(",");
+            const row = document.createElement("tr");
+            row.innerHTML = `
+            <td>${parts[5]}</td>
+            <td>${parts[1]}</td>
+            <td>${parts[2]}</td>
+            <td>${parts[4]}</td>
+            <td>${parts[3]}</td>
+            <td>${parts[6]}</td>
+        `;
+
+            tableBody.appendChild(row);
+        });
+
+    }
+
+    async function loadHoldings() {
+        let response = await fetch(host + "/home/holding");
+        let data = await response.json();
+
+        const tableBody = document.querySelector("#holdingTable tbody");
+
+        tableBody.innerHTML = "";
+
+        data.forEach(parts => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+            <td>${parts.name}</td>
+            <td>${parts.quantity}</td>
+            <td>${parts.price}</td>
+            <td>${parts.value}</td>
+        `;
+
+            tableBody.appendChild(row);
+        });
+
+    }
+
+    async function loadBalances(){
+        let response = await fetch(host + "/home/info");
+        let text = await response.text();
+        let balances = text.split(",");
+        document.getElementById("cashBalance").textContent = balances[0];
+        document.getElementById("totalValue").textContent = balances[1];
+    }
+
+    loadHistory();
+    loadPending();
+    loadHoldings();
+    loadBalances()
+</script>
+
+<script>
+    let stompClient = null;
+
+    function connect() {
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function(frame) {
+            console.log("Connected: " + frame);
+            subscribeFeedObject("AAPL");
+            subscribeFeedObject("TSLA");
+            subscribeFeedObject("GOOG");
+            subscribeFeedObject("AMZN");
+            subscribeFeedObject("MSFT");
+            subscribeHistory();
+            subscribePendingAdd();
+            subscribeHoldingAdd();
+            subscribePendingSub();
+            subscribeHoldingSub();
+            subscribeBalance();
+        });
+    }
+
+    function subscribeFeedObject(symbol){
+        stompClient.subscribe("/feed/" + symbol, function(message){
+            const feedObject = JSON.parse(message.body);
+            const feedDiv = document.getElementById(feedObject.name);
+            if(feedDiv){
+                const price = feedDiv.querySelector(".price");
+                price.innerText = feedObject.price.toFixed(2);
+            }
+        });
+    }
+
+    function subscribeBalance(){
+        stompClient.subscribe("/info/balance", function(message){
+            console.log("Received Balance Update");
+            let text = message.body;
+            const balances = text.split(",");
+            document.getElementById("cashBalance").textContent = balances[0];
+            document.getElementById("totalValue").textContent = balances[1];
+        });
+    }
+
+    function subscribeHistory(){
+        stompClient.subscribe("/trade/history", function(message){
+            const tradeObject = JSON.parse(message.body);
+            addTrade(tradeObject);
+        });
+    }
+
+    function subscribePendingAdd(){
+        stompClient.subscribe("/trade/addPending", function(message){
+            console.log("Received Pending Add Update");
+            const tradeObject = JSON.parse(message.body);
+            addPending(tradeObject);
+        });
+    }
+
+    function subscribePendingSub(){
+        stompClient.subscribe("/trade/subPending", function(message){
+            console.log("Received Pending Sub Update");
+            const tradeObject = JSON.parse(message.body);
+            subPending(tradeObject);
+        });
+    }
+
+    function subscribeHoldingAdd(){
+        stompClient.subscribe("/trade/addHolding", function(message){
+            console.log("Received Holding Add Update");
+            const tradeObject = JSON.parse(message.body);
+            addHolding(tradeObject);
+        });
+    }
+
+    function subscribeHoldingSub(){
+        stompClient.subscribe("/trade/subHolding", function(message){
+            console.log("Received Holding Sub Update");
+            const tradeObject = JSON.parse(message.body);
+            subHolding(tradeObject);
+        });
+    }
+
+    function addHolding(object){
+        console.log(object);
+
+        const tableBody = document.querySelector("#holdingTable tbody");
+        const rows = tableBody.rows;
+
+        found = false;
+
+        for(let i = 0; i < rows.length; i++){
+            let name = rows[i].cells[0].textContent;
+            if(name === object.name){
+                let quantity = parseFloat(tableBody.rows[i].cells[1].textContent).toFixed(2);
+                if(object.quantity.toFixed(2) === quantity){
+                    tableBody.deleteRow(i);
+                    break;
+                }else{
+                    tableBody.rows[i].cells[1].textContent = (object.quantity + quantity).toFixed(3);
+                    let price = parseFloat(tableBody.rows[i].cells[2].textContent);
+                    tableBody.rows[i].cells[2].textContent = (((object.price*object.quantity) + (price*quantity)) / (quantity+object.quantity)).toFixed(3);
+                    let value = parseFloat(tableBody.rows[i].cells[2].textContent);
+                    tableBody.rows[i].cells[3].textContent = (object.value + value).toFixed(3);
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if(!found){
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+            <td>${object.name}</td>
+            <td>${object.quantity}</td>
+            <td>${object.price}</td>
+            <td>${object.value}</td>
+        `;
+            tableBody.appendChild(row);
+        }
+
+
+
+
+    }
+
+    function subHolding(object){
+        console.log("Sub Holding")
+        console.log(object);
+
+        const tableBody = document.querySelector("#holdingTable tbody");
+        const rows = tableBody.rows;
+
+        for(let i = 0; i < rows.length; i++){
+            let name = rows[i].cells[0].textContent;
+            if(name === object.name){
+                if(object.quantity == 0){
+                    tableBody.deleteRow(i);
+                    break;
+                }else{
+                    tableBody.rows[i].cells[1].textContent = object.quantity.toFixed(3);
+                    tableBody.rows[i].cells[2].textContent = object.price.toFixed(3);
+                    tableBody.rows[i].cells[3].textContent = object.value.toFixed(3);
+                    console.log(tableBody.rows[i]);
+                    break;
+                }
+            }
+        }
+    }
+
+    function subPending(object){
+        console.log("Sub Pending")
+        console.log(object);
+
+        const tableBody = document.querySelector("#pendingTable tbody");
+        const rows = tableBody.rows;
+
+        console.log(rows);
+
+        for(let i = 0; i < rows.length; i++){
+            let timestamp = rows[i].cells[0].textContent;
+
+            if(timestamp === object.timestamp){
+                tableBody.deleteRow(i);
+                break;
+            }
+
+        }
+    }
+
+    function addPending(object){
+        console.log(object);
+
+        const tableBody = document.querySelector("#pendingTable tbody");
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+        <td>${object.timestamp}</td>
+        <td>${object.name}</td>
+        <td>${object.action}</td>
+        <td>${object.quantity}</td>
+        <td>${object.price}</td>
+        <td>${object.value}</td>
+    `;
+
+        tableBody.appendChild(row);
+    }
+
+    function addTrade(object){
+
+        console.log(object);
+
+        const tableBody = document.querySelector("#historyTable tbody");
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+        <td>${object.timestamp}</td>
+        <td>${object.name}</td>
+        <td>${object.action}</td>
+        <td>${object.quantity}</td>
+        <td>${object.price}</td>
+        <td>${object.value}</td>
+    `;
+
+        tableBody.appendChild(row);
+    }
+
+    connect();
+</script>
+<h4>Cash Balance: <span id="cashBalance"></span></h4>
+<h4>Total Value: <span id="totalValue"></span></h4>
+<br>
+<h2> Holdings</h2>
+<table id="holdingTable">
+    <thead>
+    <tr>
+        <th>Ticker</th>
+        <th>Quantity</th>
+        <th>Price</th>
+        <th>Total</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<div id="Feed">
+
+    <div class="stock" id="AAPL">
+        <span class="name">AAPL</span>
+        <span class="price">--</span>
+    </div>
+
+    <div class="stock" id="TSLA">
+        <span class="name">TSLA</span>
+        <span class="price">--</span>
+    </div>
+
+    <div class="stock" id="GOOG">
+        <span class="name">GOOG</span>
+        <span class="price">--</span>
+    </div>
+
+    <div class="stock" id="AMZN">
+        <span class="name">AMZN</span>
+        <span class="price">--</span>
+    </div>
+
+    <div class="stock" id="MSFT">
+        <span class="name">MSFT</span>
+        <span class="price">--</span>
+    </div>
+
+</div>
+
+<h2>Pending Orders</h2>
+<table id="pendingTable">
+    <thead>
+    <tr>
+        <th>Timestamp</th>
+        <th>Ticker</th>
+        <th>Type</th>
+        <th>Quantity</th>
+        <th>Price</th>
+        <th>Total</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+
+<!--Buy Stock Input-->
+<label>Ticker:</label>
+<input id="buyName"/>
+<label>Quantity:</label>
+<input id="buyQuantity"/>
+<label>Type:</label>
+<input id="buyOrderType"/>
+<label>Price:</label>
+<input id="buyPrice"/>
+
+<button onclick="buyOrder()">Buy Order</button>
+<br>
+
+<!--Sell Stock Input-->
+<label>Ticker:</label>
+<input id="sellName"/>
+<label>Quantity:</label>
+<input id="sellQuantity"/>
+<label>Type:</label>
+<input id="sellOrderType"/>
+<label>Price:</label>
+<input id="sellPrice"/>
+
+<button onclick="sellOrder()">Sell Order</button>
+<br>
+
+<h2> Transaction History</h2>
+<table id="historyTable">
+    <thead>
+    <tr>
+        <th>Timestamp</th>
+        <th>Ticker</th>
+        <th>Type</th>
+        <th>Quantity</th>
+        <th>Price</th>
+        <th>Total</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+    //let host = "https://duck-service-jakecole.onrender.com";
+
+    async function buyOrder() {
+        let message = "";
+        // Required
+        let name = document.getElementById("buyName").value;
+        if(name.trim() === ""){
+            console.log("Name is Required for order to be created")
+            return
+        }
+
+        let quantity = document.getElementById("buyQuantity").value;
+        if(quantity.trim() === ""){
+            console.log("Quantity is Required for order to be created")
+            return
+        }
+        let type = document.getElementById("buyOrderType").value;
+        if(type.trim() === ""){
+            console.log("Type is Required for order to be created")
+            return
+        }
+        let action = "buy"
+
+        // Optional
+        let price = document.getElementById("buyPrice").value;
+        if(price.trim() === ""){
+            if(type === "Limit"){
+                console.log("Price is required for Limit Order to be created")
+                return
+            }
+            price = "0"
+        }
+
+        let order = [type, action, name, price, quantity];
+
+        console.log("You entered:" + JSON.stringify(order));
+        // let token = localStorage.getItem("token");
+
+        let request = {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                // "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(order)
+        };
+        let response = await fetch(host + "/home", request);
+
+        if (response.ok) {
+
+            message = "Order was successfully created";
+
+        } else {
+            console.log(response);
+            message = "Error: Order couldn't be filled";
+        }
+        alert(message);
+    }
+</script>
+
+<script>
+    //let host = "https://duck-service-jakecole.onrender.com";
+
+    async function sellOrder() {
+        let message = "";
+        // Required
+        let name = document.getElementById("sellName").value;
+        if(name.trim() === ""){
+            console.log("Name is Required for order to be created")
+            return
+        }
+        let quantity = document.getElementById("sellQuantity").value;
+        if(quantity.trim() === ""){
+            console.log("Quantity is Required for order to be created")
+            return
+        }
+        let type = document.getElementById("sellOrderType").value;
+        if(type.trim() === ""){
+            console.log("Type is Required for order to be created")
+            return
+        }
+        let action = "sell";
+
+        // Optional
+        let price = document.getElementById("sellPrice").value;
+        if(price.trim() === ""){
+            price = "0"
+        }
+
+        let order = [type, action, name, price, quantity];
+
+        console.log("You entered:" + JSON.stringify(order));
+        // let token = localStorage.getItem("token");
+
+        let request = {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                // "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(order)
+        };
+        let response = await fetch(host + "/home", request);
+
+        if (response.ok) {
+
+            message = "Order was successfully created";
+
+        } else {
+            console.log(response);
+            message = "Error: Order couldn't be filled";
+        }
+        alert(message);
+    }
+</script>
+
+<!--<script>-->
+<!--    async function submitTheImage() {-->
+<!--        let duckId = document.getElementById("duckId").value;-->
+<!--        let imageInput = document.getElementById("duckImage");-->
+
+<!--        let formData = new FormData();-->
+<!--        formData.append("file", imageInput.files[0]);-->
+<!--        let token = localStorage.getItem("token");-->
+
+<!--        let request = {-->
+<!--            method: "POST",-->
+<!--            body: formData,-->
+<!--            headers: {"Authorization": `Bearer ${token}`}-->
+<!--        };-->
+
+<!--        let response = await fetch(host + "/ducks/" + duckId + "/image", request);-->
+<!--        let result = await response.json();-->
+
+<!--        return result;-->
+<!--    }-->
+<!--</script>-->
+</body>
+</html>
