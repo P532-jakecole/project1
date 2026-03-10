@@ -15,6 +15,7 @@ public class SecurityConfig {
                 .and()
                 .csrf().disable() // disable CSRF for REST + SockJS
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/ws/**").permitAll()
                         .anyRequest().permitAll() // allow all endpoints for now
                 );
 
