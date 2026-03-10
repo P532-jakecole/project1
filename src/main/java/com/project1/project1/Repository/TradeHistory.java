@@ -1,7 +1,7 @@
 package com.project1.project1.Repository;
 
 import com.project1.project1.Trading.Order;
-import com.project1.project1.Trading.OrderService;
+import com.project1.project1.Updating.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

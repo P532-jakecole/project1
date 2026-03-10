@@ -11,11 +11,11 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
-//@CrossOrigin(
-//        origins = "https://p532-jakecole.github.io",
-//        allowedHeaders = {"Authorization", "Content-Type"},
-//        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS}
-//)
+@CrossOrigin(
+        origins = "https://p532-jakecole.github.io",
+        allowedHeaders = {"*"},
+        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS}
+)
 @RequestMapping("/home")
 public class OrderController {
 

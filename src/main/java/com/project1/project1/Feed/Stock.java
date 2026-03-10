@@ -1,6 +1,8 @@
 package com.project1.project1.Feed;
 
 
+import com.project1.project1.Updating.FeedService;
+
 public class Stock implements FeedObject {
 
     private String stockName;

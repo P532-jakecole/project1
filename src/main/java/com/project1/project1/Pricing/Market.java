@@ -1,8 +1,8 @@
 package com.project1.project1.Pricing;
 
 import com.project1.project1.Feed.FeedObject;
-import com.project1.project1.Feed.FeedService;
-import com.project1.project1.Trading.OrderService;
+import com.project1.project1.Updating.FeedService;
+import com.project1.project1.Updating.OrderService;
 import com.project1.project1.Trading.Order;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

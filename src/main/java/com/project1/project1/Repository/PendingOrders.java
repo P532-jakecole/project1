@@ -3,8 +3,7 @@ package com.project1.project1.Repository;
 import com.project1.project1.Pricing.Market;
 import com.project1.project1.Pricing.Observer;
 import com.project1.project1.Trading.Order;
-import com.project1.project1.Trading.OrderService;
-import com.project1.project1.User.Holding;
+import com.project1.project1.Updating.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

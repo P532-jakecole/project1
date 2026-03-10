@@ -1,12 +1,10 @@
 package com.project1.project1.Trading;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.project1.project1.Feed.Feed;
 import com.project1.project1.Feed.FeedObject;
-import com.project1.project1.Feed.FeedService;
-import com.project1.project1.Feed.Stock;
+import com.project1.project1.Updating.FeedService;
 import com.project1.project1.Notification.NotificationService;
 import com.project1.project1.Pricing.Market;
 import com.project1.project1.Repository.PendingOrders;

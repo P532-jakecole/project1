@@ -1,6 +1,7 @@
 package com.project1.project1.Feed;
 
 import com.project1.project1.Pricing.Market;
+import com.project1.project1.Updating.FeedService;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
