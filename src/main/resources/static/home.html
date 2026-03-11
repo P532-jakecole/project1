@@ -187,27 +187,20 @@
         const tableBody = document.querySelector("#holdingTable tbody");
         const rows = tableBody.rows;
 
-        found = false;
+
+        let find = false;
 
         for(let i = 0; i < rows.length; i++){
             let name = rows[i].cells[0].textContent;
             if(name === object.name){
-                let quantity = parseFloat(tableBody.rows[i].cells[1].textContent).toFixed(2);
-                if(object.quantity.toFixed(2) === quantity){
-                    tableBody.deleteRow(i);
-                    break;
-                }else{
-                    tableBody.rows[i].cells[1].textContent = (object.quantity + quantity).toFixed(3);
-                    let price = parseFloat(tableBody.rows[i].cells[2].textContent);
-                    tableBody.rows[i].cells[2].textContent = (((object.price*object.quantity) + (price*quantity)) / (quantity+object.quantity)).toFixed(3);
-                    let value = parseFloat(tableBody.rows[i].cells[2].textContent);
-                    tableBody.rows[i].cells[3].textContent = (object.value + value).toFixed(3);
-                    found = true;
-                    break;
-                }
+                tableBody.rows[i].cells[1].textContent = object.quantity.toFixed(3);
+                tableBody.rows[i].cells[2].textContent = object.price.toFixed(3);
+                tableBody.rows[i].cells[3].textContent = object.value.toFixed(3);
+                find = true;
             }
         }
-        if(!found){
+        console.log(find);
+        if(!find){
             const row = document.createElement("tr");
 
             row.innerHTML = `

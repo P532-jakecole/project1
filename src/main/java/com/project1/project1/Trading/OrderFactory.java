@@ -1,9 +1,11 @@
 package com.project1.project1.Trading;
 
 import com.project1.project1.Feed.Feed;
+import com.project1.project1.Feed.FeedObject;
 import com.project1.project1.Notification.ConsoleNotify;
 import com.project1.project1.Notification.NotificationService;
 import com.project1.project1.Pricing.Market;
+import com.project1.project1.Pricing.Observer;
 import com.project1.project1.Repository.PendingOrders;
 import com.project1.project1.Repository.TradeHistory;
 import com.project1.project1.User.Portfolio;
@@ -12,19 +14,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class OrderFactory {
-//    @Autowired
-//    private Feed feed;
-//    @Autowired
-//    private Market market;
-//    @Autowired
-//    private PendingOrders pendingOrders;
-//    @Autowired
-//    private Portfolio portfolio;
-//    @Autowired
-//    private NotificationService notificationService;
-//    @Autowired
-//    private TradeHistory tradeHistory;
-
 
     private final Feed feed;
     private final Market market;
@@ -61,7 +50,7 @@ public class OrderFactory {
                     return null;
                 }
             }
-            if(portfolio.getCashBalance() < (stockPrice*quantity)){
+            if(action.equals("buy") && portfolio.getCashBalance() < (stockPrice*quantity)){
                 notificationService.sendNotification(String.format("balance,%.2f,%.2f,%.2f", price, quantity, portfolio.getCashBalance()));
                 return null;
             }
@@ -71,7 +60,11 @@ public class OrderFactory {
             tradeHistory.save(marketOrder);
             return marketOrder;
         }else if(type.equals("Limit")){
-            return new LimitOrder(name, price, quantity, action, market, pendingOrders, portfolio, notificationService, tradeHistory);
+            Observer limitOrder = new LimitOrder(name, price, quantity, action, market, pendingOrders, portfolio, notificationService, tradeHistory);
+            FeedObject obj = feed.getObject(name);
+            obj.registerObserver(limitOrder);
+            pendingOrders.save((Order) limitOrder);
+            return (Order) limitOrder;
         }
         notificationService.sendNotification(String.format("orderError,%s", type));
         return null;

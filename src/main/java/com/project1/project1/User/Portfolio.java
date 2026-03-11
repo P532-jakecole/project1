@@ -21,7 +21,7 @@ public class Portfolio {
 
     //private static final Portfolio account = new Portfolio();
     private double cashBalance = 1000;
-    private double portfolioBalance = 1000;
+    private double portfolioBalance = updatePortfolioBalance();
     private static final String FILE_NAME = "data/Holdings.txt";
     private static final String NEW_LINE = System.lineSeparator();
 
@@ -36,10 +36,6 @@ public class Portfolio {
 
     public void setCashBalance(double balance) {
         this.cashBalance = balance;
-    }
-
-    public void setPortfolioBalance(double portfolioBalance) {
-        this.portfolioBalance = portfolioBalance;
     }
 
     public double getCashBalance() {
@@ -89,7 +85,6 @@ public class Portfolio {
 
     public void addHolding(Holding holding) {
         try {
-
             Path path = Paths.get(FILE_NAME);
             List<Holding> holdings = getAllHoldings();
             boolean found = false;
@@ -98,15 +93,17 @@ public class Portfolio {
                 if(h.getName().equals(holding.getName())){
                     h.buyUpdate(holding);
                     found = true;
+                    orderService.addHolding(h);
                     break;
                 }
             }
 
-            orderService.addHolding(holding);
-            orderService.updateBalance(userInformation());
 
             if(!found){
                 appendToFile(path, holding.toString());
+                updatePortfolioBalance();
+                orderService.updateBalance(userInformation());
+                orderService.addHolding(holding);
                 return;
             }
             Files.write(path, new byte[0]);
@@ -114,6 +111,9 @@ public class Portfolio {
             for(Holding h : holdings){
                 appendToFile(path, h.toString());
             }
+
+            updatePortfolioBalance();
+            orderService.updateBalance(userInformation());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -131,7 +131,11 @@ public class Portfolio {
                 Holding h = iterator.next();
 
                 if(h.getName().equals(holding.getName())){
+                    System.out.println("In Remove Holding");
+                    System.out.println(h.getValue());
                     h.sellUpdate(holding);
+                    System.out.println(h.getValue());
+
                     orderService.removeHolding(h);
                     if(h.getQuantity() == 0){
                         iterator.remove();
@@ -139,21 +143,27 @@ public class Portfolio {
                     break;
                 }
             }
-            portfolioBalance = cashBalance - holding.getValue();
-            orderService.updateBalance(userInformation());
+
 
             List<String> updated = new ArrayList<>();
             for(Holding h : holdings){
                 updated.add(h.toString());
             }
             Files.write(path, updated);
+
+            portfolioBalance = updatePortfolioBalance();
+            orderService.updateBalance(userInformation());
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public double getPortfolioBalance(){
-        return portfolioBalance;
+    public double updatePortfolioBalance(){
+        double sumHoldings = 0;
+        for(Holding h : getAllHoldings()){
+            sumHoldings += h.getValue();
+        }
+        return sumHoldings + cashBalance;
     }
 
     public String userInformation(){
